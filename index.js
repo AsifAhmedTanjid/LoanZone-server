@@ -43,6 +43,7 @@ const verifyToken = async (req, res, next) => {
   try {
     const decodedUser = await admin.auth().verifyIdToken(token);
     req.user = decodedUser;
+    req.tokenEmail=decodedUser.email;
 
     next();
   } catch (error) {
@@ -59,7 +60,9 @@ async function run() {
 
     // APIs
 
-    // user api  
+    // user api 
+    
+    //insert user 
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -81,7 +84,11 @@ async function run() {
 
 
 
-
+    // get a user's role
+    app.get('/user/role', verifyToken, async (req, res) => {
+      const result = await userCollection.findOne({ email: req.tokenEmail })
+      res.send({ role: result?.role })
+    })
 
 
 
