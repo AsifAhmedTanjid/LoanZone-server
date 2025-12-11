@@ -29,7 +29,6 @@ app.get("/", (req, res) => {
   res.send("server is running bro");
 });
 
-
 const verifyToken = async (req, res, next) => {
   const authorization = req.headers.authorization;
 
@@ -43,7 +42,7 @@ const verifyToken = async (req, res, next) => {
   try {
     const decodedUser = await admin.auth().verifyIdToken(token);
     req.user = decodedUser;
-    req.tokenEmail=decodedUser.email;
+    req.tokenEmail = decodedUser.email;
 
     next();
   } catch (error) {
@@ -57,17 +56,31 @@ async function run() {
   try {
     const db = client.db("loanzone-db");
     const userCollection = db.collection("users");
+    const loanCollection = db.collection("loans");
+
+    // role middlewire
+
+    const verifyManager = async (req, res, next) => {
+      const email = req.tokenEmail;
+      const user = await userCollection.findOne({ email });
+      if (user?.role !== "manager")
+        return res
+          .status(403)
+          .send({ message: "Manager Actions Only!", role: user?.role });
+
+      next();
+    };
 
     // APIs
 
-    // user api 
-    
-    //insert user 
+    // user api
+
+    //insert user
 
     app.post("/users", async (req, res) => {
       const user = req.body;
-        if (!user.role) {
-         user.role = "borrower";
+      if (!user.role) {
+        user.role = "borrower";
       }
 
       user.createdAt = new Date();
@@ -82,14 +95,29 @@ async function run() {
       res.send(result);
     });
 
-
-
     // get a user's role
-    app.get('/user/role', verifyToken, async (req, res) => {
-      const result = await userCollection.findOne({ email: req.tokenEmail })
-      res.send({ role: result?.role })
-    })
+    app.get("/user/role", verifyToken, async (req, res) => {
+      const result = await userCollection.findOne({ email: req.tokenEmail });
+      res.send({ role: result?.role });
+    });
 
+
+
+
+
+
+
+
+
+    //loan api
+
+    // Save a loan data in db
+    app.post('/loans', verifyToken, verifyManager, async (req, res) => {
+      const loanData = req.body
+      console.log(loanData)
+      const result = await loanCollection.insertOne(loanData)
+      res.send(result)
+    })
 
 
 
