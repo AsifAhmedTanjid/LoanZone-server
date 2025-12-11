@@ -122,6 +122,21 @@ async function run() {
 
 
 
+    // get all loans posted by manager by email
+    app.get(
+      '/manage-loans/:email',
+      verifyToken,
+      verifyManager,
+      async (req, res) => {
+        const email = req.params.email
+
+        const result = await loanCollection
+          .find({ 'managerEmail': email })
+          .toArray()
+        res.send(result)
+      }
+    )
+
 
 
 
