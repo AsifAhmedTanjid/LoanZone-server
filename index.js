@@ -72,6 +72,17 @@ async function run() {
       next();
     };
 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.tokenEmail;
+      const user = await userCollection.findOne({ email });
+      if (user?.role !== "admin")
+        return res
+          .status(403)
+          .send({ message: "Admin Actions Only!", role: user?.role });
+
+      next();
+    };
+
     // APIs
 
     // user api
@@ -100,6 +111,23 @@ async function run() {
     app.get("/user/role", verifyToken, async (req, res) => {
       const result = await userCollection.findOne({ email: req.tokenEmail });
       res.send({ role: result?.role });
+    });
+
+    // get all users 
+    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    // update user 
+    app.patch('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: req.body
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
     });
 
 
