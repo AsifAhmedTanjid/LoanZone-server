@@ -120,8 +120,19 @@ async function run() {
       res.send(result)
     })
 
+    // get all loans
+    app.get('/loans', async (req, res) => {
+      const result = await loanCollection.find().toArray()
+      res.send(result)
+    })
 
-
+    // get single loan
+    app.get('/loans/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await loanCollection.findOne(query)
+      res.send(result)
+    })
 
     // get all loans posted by manager by email
     app.get(
@@ -161,7 +172,7 @@ async function run() {
             res.send(result);
         })
 
-        
+
 
     // add loan aplication
    
