@@ -183,6 +183,17 @@ async function run() {
       res.send(result);
     })
 
+    // get applications by borrower email
+    app.get('/applications/:email', verifyToken, async (req, res) => {
+        const email = req.params.email;
+        if (req.tokenEmail !== email) {
+            return res.status(403).send({ message: 'forbidden access' });
+        }
+        const query = { borrowerEmail: email };
+        const result = await applicationCollection.find(query).toArray();
+        res.send(result);
+    })
+
     
 
     await client.db("admin").command({ ping: 1 });
