@@ -137,6 +137,20 @@ async function run() {
       }
     )
 
+    // update loan
+    app.patch('/loans/:id', verifyToken, verifyManager, async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+      const updatedLoan = req.body
+      const updateDoc = {
+        $set: {
+          ...updatedLoan
+        }
+      }
+      const result = await loanCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
+
 //delete loan
     app.delete('/loans/:id', verifyToken, verifyManager, async (req, res) => {
             const id = req.params.id;
