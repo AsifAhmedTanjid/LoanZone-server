@@ -202,6 +202,28 @@ async function run() {
         res.send(result);
     })
 
+    // get applications by manager email
+    app.get('/manager/applications/:email', verifyToken, verifyManager, async (req, res) => {
+        const email = req.params.email;
+        const query = { managerEmail: email };
+        const result = await applicationCollection.find(query).toArray();
+        res.send(result);
+    })
+
+    // update application status
+    app.patch('/applications/:id', verifyToken, verifyManager, async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedStatus = req.body;
+        const updateDoc = {
+            $set: {
+                ...updatedStatus
+            }
+        };
+        const result = await applicationCollection.updateOne(filter, updateDoc);
+        res.send(result);
+    })
+
     
 
     await client.db("admin").command({ ping: 1 });
