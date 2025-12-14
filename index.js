@@ -161,8 +161,25 @@ async function run() {
 
     // get all loans
     app.get('/loans', async (req, res) => {
-      const result = await loanCollection.find().toArray()
-      res.send(result)
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+
+      if (req.query.page && req.query.size) {
+        const result = await loanCollection.find()
+          .skip(page * size)
+          .limit(size)
+          .toArray();
+        res.send(result);
+      } else {
+        const result = await loanCollection.find().toArray()
+        res.send(result)
+      }
+    })
+
+    // get loans count
+    app.get('/loansCount', async (req, res) => {
+      const count = await loanCollection.estimatedDocumentCount();
+      res.send({ count });
     })
 
     // get single loan
