@@ -57,6 +57,7 @@ async function run() {
     const db = client.db("loanzone-db");
     const userCollection = db.collection("users");
     const loanCollection = db.collection("loans");
+     const applicationCollection = db.collection("applications");
 
     // role middlewire
 
@@ -151,7 +152,7 @@ async function run() {
       res.send(result)
     })
 
-//delete loan
+    //delete loan
     app.delete('/loans/:id', verifyToken, verifyManager, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
@@ -160,7 +161,16 @@ async function run() {
             res.send(result);
         })
 
+        
 
+    // add loan aplication
+   
+
+    app.post('/applications', verifyToken, async (req, res) => {
+      const applicationData = req.body;
+      const result = await applicationCollection.insertOne(applicationData);
+      res.send(result);
+    })
 
     
 
