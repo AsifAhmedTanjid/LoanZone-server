@@ -222,6 +222,12 @@ async function run() {
       res.send(result);
     })
 
+    // get all applications for admin
+    app.get('/applications', verifyToken, verifyAdmin, async (req, res) => {
+        const result = await applicationCollection.find().toArray();
+        res.send(result);
+    })
+
     // get applications by borrower email
     app.get('/applications/:email', verifyToken, async (req, res) => {
         const email = req.params.email;
