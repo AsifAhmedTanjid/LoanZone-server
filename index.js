@@ -137,6 +137,14 @@ async function run() {
       }
     )
 
+//delete loan
+    app.delete('/loans/:id', verifyToken, verifyManager, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+
+            const result = await loanCollection.deleteOne(query);
+            res.send(result);
+        })
 
 
 
