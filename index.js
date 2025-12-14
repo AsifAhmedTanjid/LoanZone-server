@@ -83,6 +83,17 @@ async function run() {
       next();
     };
 
+    const verifyAdminOrManager = async (req, res, next) => {
+      const email = req.tokenEmail;
+      const user = await userCollection.findOne({ email });
+      if (user?.role !== "admin" && user?.role !== "manager")
+        return res
+          .status(403)
+          .send({ message: "Admin or Manager Actions Only!", role: user?.role });
+
+      next();
+    };
+
     // APIs
 
     // user api
@@ -178,7 +189,7 @@ async function run() {
     )
 
     // update loan
-    app.patch('/loans/:id', verifyToken, verifyManager, async (req, res) => {
+    app.patch('/loans/:id', verifyToken, verifyAdminOrManager, async (req, res) => {
       const id = req.params.id
       const filter = { _id: new ObjectId(id) }
       const updatedLoan = req.body
@@ -192,7 +203,7 @@ async function run() {
     })
 
     //delete loan
-    app.delete('/loans/:id', verifyToken, verifyManager, async (req, res) => {
+    app.delete('/loans/:id', verifyToken, verifyAdminOrManager, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
 
