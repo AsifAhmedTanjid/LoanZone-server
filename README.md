@@ -41,7 +41,7 @@ This is the backend API for the LoanZone application, built with Node.js, Expres
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/AsifAhmedTanjid/LoanZone-server.git
     cd LoanZone-server
     ```
 
