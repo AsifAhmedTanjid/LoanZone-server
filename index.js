@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 var admin = require("firebase-admin");
 const serviceAccount = require("./loan-zone-firebase-adminsdk.json");
 const app = express();
@@ -286,7 +287,68 @@ async function run() {
         res.send(result);
     })
 
-    
+    // Checkout Session
+    app.post("/create-checkout-session", verifyToken, async (req, res) => {
+      const { applicationId, loanTitle, amount, borrowerEmail, borrowerName } = req.body;
+
+      try {
+        const session = await stripe.checkout.sessions.create({
+          
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                product_data: {
+                  name: `Application Fee for ${loanTitle}`,
+                },
+                unit_amount: amount * 100,
+              },
+              quantity: 1,
+            },
+          ],
+          mode: "payment",
+          success_url: `${process.env.CLIENT_URL}/dashboard/my-loans?success=true&session_id={CHECKOUT_SESSION_ID}&applicationId=${applicationId}`,
+          cancel_url: `${process.env.CLIENT_URL}/dashboard/my-loans?canceled=true`,
+          customer_email: borrowerEmail,
+          metadata: {
+            applicationId,
+            borrowerName
+          }
+        });
+
+        res.send({ url: session.url });
+      } catch (error) {
+        res.status(500).send({ error: error.message });
+      }
+    });
+
+    // Verify Payment and Update Status
+    app.post("/verify-payment", verifyToken, async (req, res) => {
+        const { sessionId, applicationId } = req.body;
+
+        try {
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status === 'paid') {
+                const updateResult = await applicationCollection.updateOne(
+                    { _id: new ObjectId(applicationId) },
+                    {
+                        $set: {
+                            paymentStatus: 'paid',
+                            transactionId: session.payment_intent,
+                            paymentDate: new Date(),
+                            paymentEmail: session.customer_details.email,
+                            paymentAmount: session.amount_total / 100
+                        }
+                    }
+                );
+                res.send({ success: true, updateResult });
+            } else {
+                res.status(400).send({ success: false, message: "Payment not verified" });
+            }
+        } catch (error) {
+            res.status(500).send({ error: error.message });
+        }
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
