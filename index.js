@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const nodemailer = require("nodemailer");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 var admin = require("firebase-admin");
@@ -348,6 +349,40 @@ async function run() {
         } catch (error) {
             res.status(500).send({ error: error.message });
         }
+    });
+
+    // Send Email
+    app.post("/send-email", async (req, res) => {
+      const { firstName, lastName, email, subject, message } = req.body;
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: email,
+        to: process.env.EMAIL_USER,
+        subject: `New Message from ${firstName} ${lastName}: ${subject}`,
+        text: `
+          Application : LOAN ZONE
+          Name: ${firstName} ${lastName}
+          Email: ${email}
+          Subject: ${subject}
+          Message: ${message}
+        `,
+      };
+
+      try {
+        await transporter.sendMail(mailOptions);
+        res.send({ success: true, message: "Email sent successfully" });
+      } catch (error) {
+        console.error("Error sending email:", error);
+        res.status(500).send({ success: false, message: "Failed to send email" });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
