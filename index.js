@@ -163,7 +163,7 @@ async function run() {
 
     // get all loans
     app.get('/loans', async (req, res) => {
-      const { category, sortBy, search, page = 0, size = 8 } = req.query;
+      const { category, sortBy, search, page = 0, size = 8, featured } = req.query;
       let query = {};
       
       // Category filter
@@ -171,6 +171,11 @@ async function run() {
         query.category = category;
       }
       
+      // Featured filter
+      if (featured === 'true') {
+        query.showOnHome = true;
+      }
+
       // Search filter 
       if (search) {
         query.$or = [
