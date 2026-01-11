@@ -449,6 +449,71 @@ async function run() {
       }
     });
 
+    // Admin Stats
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
+      const totalUsers = await userCollection.countDocuments();
+      const totalLoans = await loanCollection.countDocuments();
+      const totalApplications = await applicationCollection.countDocuments();
+      
+      const usersByRole = await userCollection.aggregate([
+        { $group: { _id: "$role", count: { $sum: 1 } } }
+      ]).toArray();
+
+      const loansByCategory = await loanCollection.aggregate([
+        { $group: { _id: "$category", count: { $sum: 1 } } }
+      ]).toArray();
+
+      res.send({
+        totalUsers,
+        totalLoans,
+        totalApplications,
+        usersByRole,
+        loansByCategory
+      });
+    });
+
+    // Manager Stats
+    app.get('/manager-stats', verifyToken, verifyManager, async (req, res) => {
+        const email = req.tokenEmail;
+        const totalLoans = await loanCollection.countDocuments({ managerEmail: email });
+        const totalApplications = await applicationCollection.countDocuments({ managerEmail: email });
+        const paidApplications = await applicationCollection.countDocuments({ managerEmail: email, paymentStatus: 'paid' });
+
+        const applicationsByStatus = await applicationCollection.aggregate([
+             { $match: { managerEmail: email } },
+             { $group: { _id: "$status", count: { $sum: 1 } } }
+        ]).toArray();
+
+        res.send({
+            totalLoans,
+            totalApplications,
+            paidApplications,
+            applicationsByStatus
+        });
+    });
+
+    // Borrower Stats
+    app.get('/borrower-stats', verifyToken, async (req, res) => {
+         const email = req.tokenEmail;
+         const totalApplications = await applicationCollection.countDocuments({ borrowerEmail: email });
+         
+        const applicationsByStatus = await applicationCollection.aggregate([
+            { $match: { borrowerEmail: email } },
+            { $group: { _id: "$status", count: { $sum: 1 } } }
+        ]).toArray();
+        
+        const totalSpent = await applicationCollection.aggregate([
+             { $match: { borrowerEmail: email, paymentStatus: 'paid' } },
+             { $group: { _id: null, total: { $sum: "$paymentAmount" } } }
+        ]).toArray();
+
+        res.send({
+            totalApplications,
+            applicationsByStatus,
+            totalSpent: totalSpent.length > 0 ? totalSpent[0].total : 0
+        });
+    })
+
     // await client.db("admin").command({ ping: 1 });
     // console.log(
     //   "Pinged your deployment. You successfully connected to MongoDB!"
