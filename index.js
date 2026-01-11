@@ -163,24 +163,83 @@ async function run() {
 
     // get all loans
     app.get('/loans', async (req, res) => {
-      const page = parseInt(req.query.page);
-      const size = parseInt(req.query.size);
-
-      if (req.query.page && req.query.size) {
-        const result = await loanCollection.find()
-          .skip(page * size)
-          .limit(size)
-          .toArray();
-        res.send(result);
-      } else {
-        const result = await loanCollection.find().toArray()
-        res.send(result)
+      const { category, sortBy, search, page = 0, size = 8 } = req.query;
+      let query = {};
+      
+      // Category filter
+      if (category) {
+        query.category = category;
       }
+      
+      // Search filter 
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { category: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } }
+        ];
+      }
+
+      // aggregation pipeline
+      let pipeline = [
+        { $match: query }
+      ];
+
+      // Sorting
+      if (sortBy === 'interestRateLow') {
+        pipeline.push({
+            $addFields: { interestRateNum: { $toDouble: "$interestRate" } }
+        });
+        pipeline.push({ $sort: { interestRateNum: 1 } });
+      } else if (sortBy === 'interestRateHigh') {
+        pipeline.push({
+            $addFields: { interestRateNum: { $toDouble: "$interestRate" } }
+        });
+        pipeline.push({ $sort: { interestRateNum: -1 } });
+      } else if (sortBy === 'amountHigh') {
+        pipeline.push({
+            $addFields: { maxLoanLimitNum: { $toDouble: "$maxLoanLimit" } }
+        });
+        pipeline.push({ $sort: { maxLoanLimitNum: -1 } });
+      } else if (sortBy === 'amountLow') {
+        pipeline.push({
+            $addFields: { maxLoanLimitNum: { $toDouble: "$maxLoanLimit" } }
+        });
+        pipeline.push({ $sort: { maxLoanLimitNum: 1 } });
+      } else {
+        // Default sort
+        pipeline.push({ $sort: { _id: -1 } });
+      }
+
+      const skip = parseInt(page) * parseInt(size);
+
+      pipeline.push({ $skip: skip });
+      pipeline.push({ $limit: parseInt(size) });
+
+      const result = await loanCollection.aggregate(pipeline).toArray();
+        
+      res.send(result);
     })
 
     // get loans count
     app.get('/loansCount', async (req, res) => {
-      const count = await loanCollection.estimatedDocumentCount();
+      const { category, search } = req.query;
+      let query = {};
+      
+      // Apply same filters for count
+      if (category) {
+        query.category = category;
+      }
+      
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { category: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } }
+        ];
+      }
+      
+      const count = await loanCollection.countDocuments(query);
       res.send({ count });
     })
 
